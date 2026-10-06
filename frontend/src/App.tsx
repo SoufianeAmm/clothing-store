@@ -13,9 +13,32 @@ import About from "./pages/About";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
+
   useEffect(() => {
-    if (!hash) window.scrollTo(0, 0);
+    if (!hash) {
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // the target section may still be waiting on an async data fetch (e.g. the
+    // category grid on Home), so retry briefly instead of giving up on the first miss
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const tryScroll = () => {
+      const el = document.getElementById(hash.slice(1));
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (attempts < 20) {
+        attempts += 1;
+        timer = setTimeout(tryScroll, 100);
+      }
+    };
+
+    tryScroll();
+    return () => clearTimeout(timer);
   }, [pathname, hash]);
+
   return null;
 }
 
